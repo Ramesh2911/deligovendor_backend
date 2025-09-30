@@ -43,7 +43,7 @@ export const subCategories = async (req, res) => {
 
    try {
       const [rows] = await con.query(
-         `SELECT cid, category_name, is_active FROM hr_category WHERE parent_id = ?`,
+         `SELECT cid, category_name, is_active FROM hr_category WHERE parent_id = ? AND is_active = 1`,
          [parent_id]
       );
 

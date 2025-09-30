@@ -9,7 +9,7 @@ export const verifyToken = (req, res, next) => {
 	}
 
 	try {
-		const bearerToken = token.split(" ")[1]; // Handle "Bearer <token>"
+		const bearerToken = token.split(" ")[1]; 
 		const decoded = jwt.verify(bearerToken, process.env.JWT_SECRET);
 		req.user = decoded;
 		next();

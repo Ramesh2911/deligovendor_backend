@@ -1,68 +1,67 @@
 import con from '../db/db.js';
 
-
 //===== vendor Status=====
 export const vendorStats = async (req, res) => {
-   const { vendor_id } = req.query;
+  const { vendor_id } = req.query;
 
-   if (!vendor_id) {
-      return res.status(400).json({ status: false, message: 'vendor_id is required' });
-   }
+  if (!vendor_id) {
+    return res.status(400).json({ status: false, message: 'vendor_id is required' });
+  }
 
-   try {
-      const [isActiveCounts] = await con.query(`
+  try {
+    const [isActiveCounts] = await con.query(`
       SELECT
         SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) AS active_count,
         SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) AS inactive_count
       FROM hr_product
       WHERE vendor_id = ?
     `, [vendor_id]);
-
-      const [statusCounts] = await con.query(`
+   
+    const [statusCounts] = await con.query(`
       SELECT status, COUNT(*) as count
       FROM hr_order
       WHERE vendor_id = ?
       GROUP BY status
     `, [vendor_id]);
-
-      const [todayAmount] = await con.query(`
-     SELECT IFNULL(SUM(total_amount), 0) AS today_total
-FROM hr_order
-WHERE vendor_id = ?
-  AND created_time >= CURDATE()
-  AND created_time < CURDATE() + INTERVAL 1 DAY;
+   
+    const [todayAmount] = await con.query(`
+      SELECT IFNULL(SUM(total_sale_amount - total_admin_revinue), 0) AS today_total
+      FROM hr_vendor_commission
+      WHERE vendor_id = ?
+        AND DATE(crated_time) = CURDATE()
     `, [vendor_id]);
-
-      const [monthAmount] = await con.query(`
-      SELECT IFNULL(SUM(total_amount), 0) as month_total
-      FROM hr_order
-      WHERE vendor_id = ? AND MONTH(created_time) = MONTH(CURDATE()) AND YEAR(created_time) = YEAR(CURDATE())
+    
+    const [lastWeekAmount] = await con.query(`
+      SELECT IFNULL(SUM(total_sale_amount - total_admin_revinue), 0) AS last_week_total
+      FROM hr_vendor_commission
+      WHERE vendor_id = ?
+        AND YEARWEEK(crated_time, 1) = YEARWEEK(CURDATE(), 1) - 1
     `, [vendor_id]);
+    
+    const statusData = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+    statusCounts.forEach(row => {
+      statusData[row.status] = row.count;
+    });
 
-      const statusData = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
-      statusCounts.forEach(row => {
-         statusData[row.status] = row.count;
-      });
-
-      res.status(200).json({
-         status: true,
-         message: 'Vendor data fetched successfully',
-         data: {
-            product_counts: {
-               active: isActiveCounts[0].active_count,
-               inactive: isActiveCounts[0].inactive_count
-            },
-            order_status: statusData,
-            total_amount: {
-               today: parseFloat(todayAmount[0].today_total).toFixed(2),
-               this_month: parseFloat(monthAmount[0].month_total).toFixed(2)
-            }
-         }
-      });
-   } catch (error) {
-      console.error('Error fetching vendor stats:', error);
-      res.status(500).json({ status: false, message: 'Server Error', error: error.message });
-   }
+    res.status(200).json({
+      status: true,
+      message: 'Vendor data fetched successfully',
+      data: {
+        product_counts: {
+          active: isActiveCounts[0].active_count,
+          inactive: isActiveCounts[0].inactive_count
+        },
+        order_status: statusData,
+        total_amount: {
+          today: parseFloat(todayAmount[0].today_total).toFixed(2),
+          last_week: parseFloat(lastWeekAmount[0].last_week_total).toFixed(2)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching vendor stats:', error);
+    res.status(500).json({ status: false, message: 'Server Error', error: error.message });
+  }
 };
 
 //===== shop Status====
@@ -111,6 +110,7 @@ export const getOrders = async (req, res) => {
             FROM hr_order
             WHERE vendor_id = ?
               AND status = 1
+              AND payment_status = 'completed'
               AND read_notification = 0
         `, [vendor_id]);
 

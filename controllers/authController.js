@@ -65,23 +65,20 @@ export const createAcount = async (req, res) => {
   INSERT INTO hr_users (
     prefix, first_name, last_name, password, email,
     country_id, country_code, mobile, address, pincode,
-    nif, latitude, longitude, role_id, built_in, exclude,
-    passport, vehicle_type, is_active
+    nif, latitude, longitude, role_id, passport, vehicle_type, is_active
   )
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `;
 
 const insertValues = [
   prefix, first_name, last_name, hashedPassword, email,
   country_id, country_code, mobile, address, pincode,
-  null,          // nif
+  null,         
   latitude, longitude,
   4,             // role_id
-  0,             // built_in
-  0,             // exclude
   null,          // passport
   0,          // vehicle_type
-  'Y'            // is_active
+  'P'            // is_active
 ];
 
     const [result] = await con.query(insertQuery, insertValues);
@@ -103,14 +100,14 @@ const insertValues = [
 //======updateAccount=====
 export const updateUserAccount = async (req, res) => {
   try {
-    const { id, business_name, business_person, company_name, contact_mail, contact_mobile, business_type_id } = req.body;
+    const { id, business_name, business_person, company_name, contact_mail, contact_mobile, business_type_id,bank_id,account_no } = req.body;
 
     if (!id) {
       return res.status(400).json({ status: false, message: 'User ID is required.' });
     }
 
-    const query = "UPDATE hr_users SET business_name=?, business_person=?, company_name=?, contact_mail=?, contact_mobile=?, business_type_id=? WHERE id=?";
-    const values = [business_name, business_person, company_name, contact_mail, contact_mobile, business_type_id, id];
+    const query = "UPDATE hr_users SET business_name=?, business_person=?, company_name=?, contact_mail=?, contact_mobile=?, business_type_id=?,bank_id=?,account_no=? WHERE id=?";
+    const values = [business_name, business_person, company_name, contact_mail, contact_mobile, business_type_id,bank_id,account_no, id];
 
     const [result] = await con.query(query, values);
 
@@ -130,7 +127,7 @@ export const updateUserAccount = async (req, res) => {
   }
 };
 
-//===== document upload=====
+// ===== updateDocs.js =====
 export const updateDocs = async (req, res) => {
   const { id } = req.params;
   const files = req.files;
@@ -138,21 +135,63 @@ export const updateDocs = async (req, res) => {
   if (!id) {
     return res.status(400).json({ success: false, message: "User ID is required" });
   }
+  
+  const requiredFields = [
+    "profile_picture",
+    "owner_id_doc",
+    "nif_doc",
+    "health_license",
+    "shop_logo",
+    "shop_banner",
+    "service_agreement"
+  ];
+  
+  for (const field of requiredFields) {
+    if (!files || !files[field] || !files[field][0]) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing required document: ${field}`
+      });
+    }
+  }
 
   try {
     let updateData = {};
 
-    for (const fieldName in files) {
+    for (const fieldName of requiredFields) {
       const file = files[fieldName][0];
+
+      let bucketName;
+      if (fieldName === "shop_logo" || fieldName === "shop_banner") {
+        bucketName = "shop"; 
+      } else {
+        bucketName = "profile"; 
+      }
+
       const folder = getS3Folder(fieldName);
+     
+      if (fieldName === "service_agreement") {
+        if (!["application/pdf", "application/octet-stream"].includes(file.mimetype)) {
+          return res.status(400).json({
+            success: false,
+            message: "Service Agreement must be a PDF file",
+          });
+        }
+      } else if (!file.mimetype.startsWith("image/")) {
+        return res.status(400).json({
+          success: false,
+          message: `${fieldName} must be an image file`,
+        });
+      }
      
       const s3Path = await uploadToS3(
         file.buffer,
         file.originalname,
         folder,
-        file.mimetype
+        file.mimetype || "application/pdf",
+        bucketName
       );
-     
+
       updateData[fieldName] = s3Path;
     }
 
@@ -160,13 +199,13 @@ export const updateDocs = async (req, res) => {
       await con.query("UPDATE hr_users SET ? WHERE id = ?", [updateData, id]);
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: "Documents updated successfully",
+      message: "All documents uploaded successfully",
     });
   } catch (error) {
     console.error("Upload error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Error updating documents",
       error: error.message,
@@ -186,21 +225,25 @@ export const login = async (req, res) => {
       });
     }
 
-    const [rows] = await con.query(
-      `SELECT
+  const [rows] = await con.query(
+  `SELECT
       u.*,
       c.category_name,
-      cn.name AS country_name
+      cn.name AS country_name,
+      b.name AS bank_name
    FROM hr_users u
    LEFT JOIN hr_category c
      ON u.business_type_id = c.cid
    LEFT JOIN hr_countries cn
      ON u.country_id = cn.id
+   LEFT JOIN hr_banks b
+     ON u.bank_id = b.id
    WHERE u.email = ?
      AND u.role_id = 4
      AND u.is_active = 'Y'`,
-      [email]
-    );
+  [email]
+);
+
 
     if (rows.length === 0) {
       return res.status(400).json({

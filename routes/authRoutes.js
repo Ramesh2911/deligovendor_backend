@@ -29,11 +29,12 @@ authRoutes.put(
   "/update-docs/:id",
   upload.fields([
     { name: "profile_picture", maxCount: 1 },
+    { name: "owner_id_doc", maxCount: 1 },
     { name: "nif_doc", maxCount: 1 },
     { name: "health_license", maxCount: 1 },
     { name: "shop_logo", maxCount: 1 },
     { name: "shop_banner", maxCount: 1 },
-    { name: "bank_doc", maxCount: 1 },
+    { name: "service_agreement", maxCount: 1 },
   ]),
   updateDocs
 );

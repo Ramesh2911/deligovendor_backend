@@ -71,6 +71,7 @@ export const adminCookie = async (jwt_secret, user, res, message) => {
         contact_mail: user.contact_mail,
         contact_mobile: user.contact_mobile,
         bank_id: user.bank_id,
+        bank_name: user.bank_name,
         account_no: user.account_no,
         latitude: user.latitude,
         longitude: user.longitude,
