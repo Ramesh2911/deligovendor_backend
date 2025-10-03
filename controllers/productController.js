@@ -302,7 +302,6 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-
 //=====vendor against product====
 export const getProductsByVendor = async (req, res) => {
   let { vendor_id } = req.query;
