@@ -255,8 +255,6 @@ export const updateProduct = async (req, res) => {
       "product_desc",
       "mrp_price",
       "price",
-      "tax_percentage",
-      "tax_price",
       "sku",
       "brand",
       "stock_quantity",
@@ -264,37 +262,26 @@ export const updateProduct = async (req, res) => {
       "is_active",
     ];
 
-    // Validation for specific fields
-    if (req.body.hasOwnProperty('mrp_price') && req.body.mrp_price !== null && req.body.mrp_price !== '') {
-      if (isNaN(parseFloat(req.body.mrp_price))) {
-        errors.push("MRP price must be a valid number");
-      }
+    // Simple validation for numeric fields
+    if (req.body.mrp_price && isNaN(parseFloat(req.body.mrp_price))) {
+      errors.push("MRP price must be a valid number");
     }
 
-    if (req.body.hasOwnProperty('price') && req.body.price !== null && req.body.price !== '') {
-      if (isNaN(parseFloat(req.body.price))) {
-        errors.push("Selling price must be a valid number");
-      }
+    if (req.body.price && isNaN(parseFloat(req.body.price))) {
+      errors.push("Selling price must be a valid number");
     }
 
-    if (req.body.hasOwnProperty('stock_quantity') && req.body.stock_quantity !== null && req.body.stock_quantity !== '') {
-      if (isNaN(parseInt(req.body.stock_quantity))) {
-        errors.push("Stock quantity must be a valid number");
-      }
+    if (req.body.stock_quantity && isNaN(parseInt(req.body.stock_quantity))) {
+      errors.push("Stock quantity must be a valid number");
     }
 
-    if (req.body.hasOwnProperty('tax_percentage') && req.body.tax_percentage !== null && req.body.tax_percentage !== '') {
-      if (isNaN(parseFloat(req.body.tax_percentage))) {
-        errors.push("Tax percentage must be a valid number");
-      }
+    if (req.body.tax && isNaN(parseFloat(req.body.tax))) {
+      errors.push("Tax percentage must be a valid number");
     }
 
-    if (req.body.hasOwnProperty('tax_price') && req.body.tax_price !== null && req.body.tax_price !== '') {
-      if (isNaN(parseFloat(req.body.tax_price))) {
-        errors.push("Tax amount must be a valid number");
-      }
+    if (req.body.tax_amount && isNaN(parseFloat(req.body.tax_amount))) {
+      errors.push("Tax amount must be a valid number");
     }
-
 
     // Handle file upload validation
     if (req.file) {
@@ -317,13 +304,24 @@ export const updateProduct = async (req, res) => {
       });
     }
 
-    // Update all fields that exist in req.body (even if null or empty)
+    // Build update query for fields that exist in request body
     allowedFields.forEach((field) => {
-      if (req.body.hasOwnProperty(field)) {
+      if (req.body[field] !== undefined) {
         fields.push(`${field} = ?`);
         values.push(req.body[field]);
       }
     });
+
+    // Handle tax fields mapping (frontend sends 'tax' and 'tax_amount', database expects 'tax_percentage' and 'tax_price')
+    if (req.body.tax !== undefined) {
+      fields.push("tax_percentage = ?");
+      values.push(req.body.tax || 0);
+    }
+
+    if (req.body.tax_amount !== undefined) {
+      fields.push("tax_price = ?");
+      values.push(req.body.tax_amount || 0);
+    }
 
     // Handle file upload
     if (req.file) {
