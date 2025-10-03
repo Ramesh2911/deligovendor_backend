@@ -78,7 +78,7 @@ const insertValues = [
   4,             // role_id
   null,          // passport
   0,          // vehicle_type
-  'P'            // is_active
+  'Y'            // is_active
 ];
 
     const [result] = await con.query(insertQuery, insertValues);
