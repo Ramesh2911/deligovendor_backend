@@ -159,82 +159,6 @@ export const addProduct = async (req, res) => {
 };
 
 //====updateProduct=====
-// export const updateProduct = async (req, res) => {
-//    const {
-//       product_cat,
-//       product_sub_cat,
-//       vendor_id,
-//       product_name,
-//       product_image,
-//       product_short,
-//       product_desc,
-//       mrp_price,
-//       price,
-//       sku,
-//       brand,
-//       stock_quantity,
-//       product_unit_id,
-//       is_active,
-//    } = req.body;
-
-//    const { pid } = req.params;
-
-//    if (!pid) {
-//       return res.status(400).json({ success: false, message: 'Product ID (pid) is required' });
-//    }
-
-//    try {
-//       const sql = `
-//       UPDATE hr_product SET
-//         product_cat = ?,
-//         product_sub_cat = ?,
-//         vendor_id = ?,
-//         product_name = ?,
-//         product_image = ?,
-//         product_short = ?,
-//         product_desc = ?,
-//         mrp_price = ?,
-//         price = ?,
-//         sku = ?,
-//         brand = ?,
-//         stock_quantity = ?,
-//         product_unit_id = ?,
-//         is_active = ?,
-//         modified_time = NOW()
-//       WHERE pid = ?
-//     `;
-
-//       const values = [
-//          product_cat,
-//          product_sub_cat,
-//          vendor_id,
-//          product_name,
-//          product_image,
-//          product_short,
-//          product_desc,
-//          mrp_price,
-//          price,
-//          sku,
-//          brand,
-//          stock_quantity,
-//          product_unit_id,
-//          is_active,
-//          pid,
-//       ];
-
-//       const [result] = await con.query(sql, values);
-
-//       if (result.affectedRows === 0) {
-//          return res.status(404).json({ success: false, message: 'Product not found' });
-//       }
-
-//       return res.status(200).json({ success: true, message: 'Product updated successfully' });
-//    } catch (error) {
-//       console.error('Update Product Error:', error);
-//       return res.status(500).json({ success: false, message: 'Internal server error' });
-//    }
-// };
-
 export const updateProduct = async (req, res) => {
   const { pid } = req.params;
   if (!pid) {
@@ -248,7 +172,7 @@ export const updateProduct = async (req, res) => {
 
     const allowedFields = [
       "product_cat",
-      "product_sub_cat", 
+      "product_sub_cat",
       "vendor_id",
       "product_name",
       "product_short",
@@ -264,29 +188,36 @@ export const updateProduct = async (req, res) => {
       "tax_amount",
     ];
 
-    // Simple validation for numeric fields (handle string numbers from FormData)
+    // Numeric validations
     if (req.body.mrp_price && req.body.mrp_price !== '' && req.body.mrp_price !== '0' && isNaN(parseFloat(req.body.mrp_price))) {
       errors.push("MRP price must be a valid number");
     }
-
     if (req.body.price && req.body.price !== '' && req.body.price !== '0' && isNaN(parseFloat(req.body.price))) {
       errors.push("Selling price must be a valid number");
     }
-
     if (req.body.stock_quantity && req.body.stock_quantity !== '' && req.body.stock_quantity !== '0' && isNaN(parseInt(req.body.stock_quantity))) {
       errors.push("Stock quantity must be a valid number");
     }
-
     if (req.body.tax && req.body.tax !== '' && req.body.tax !== '0' && isNaN(parseFloat(req.body.tax))) {
       errors.push("Tax percentage must be a valid number");
     }
-
     if (req.body.tax_amount && req.body.tax_amount !== '' && req.body.tax_amount !== '0' && isNaN(parseFloat(req.body.tax_amount))) {
       errors.push("Tax amount must be a valid number");
     }
 
-    // Handle file upload validation (only if user wants to change image)
-    if (req.file && req.file.size > 0 && req.file.originalname) {
+    // ✅ Only validate product_image if a new file is actually uploaded
+    if (
+      req.file &&
+      req.file.size > 0 &&
+      req.file.originalname &&
+      req.file.originalname.trim() !== ''
+    ) {
+      console.log("File received:", {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+      });
+
       const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
       const maxSize = 5 * 1024 * 1024;
 
@@ -297,6 +228,8 @@ export const updateProduct = async (req, res) => {
       if (req.file.size > maxSize) {
         errors.push("Image size exceeds 5MB limit");
       }
+    } else {
+      console.log("No new product image uploaded → keeping old image");
     }
 
     if (errors.length > 0) {
@@ -308,14 +241,13 @@ export const updateProduct = async (req, res) => {
       });
     }
 
-    // Build update query for fields that exist in request body
+    // Build update query
     allowedFields.forEach((field) => {
       if (req.body[field] !== undefined) {
-        // Map frontend field names to database field names
-        if (field === 'tax') {
+        if (field === "tax") {
           fields.push("tax_percentage = ?");
           values.push(req.body[field] || 0);
-        } else if (field === 'tax_amount') {
+        } else if (field === "tax_amount") {
           fields.push("tax_price = ?");
           values.push(req.body[field] || 0);
         } else {
@@ -325,11 +257,17 @@ export const updateProduct = async (req, res) => {
       }
     });
 
-    // Handle file upload (only if user wants to change image)
-    if (req.file && req.file.size > 0 && req.file.originalname) {
+    // ✅ Only update product_image if new image uploaded
+    if (
+      req.file &&
+      req.file.size > 0 &&
+      req.file.originalname &&
+      req.file.originalname.trim() !== ''
+    ) {
       const fileContent = req.file.buffer;
       const fileName = req.file.originalname;
       const mimetype = req.file.mimetype;
+
       const productImageKey = await uploadToS3(fileContent, fileName, mimetype, "grocery/");
 
       fields.push("product_image = ?");
@@ -350,19 +288,20 @@ export const updateProduct = async (req, res) => {
       return res.status(404).json({ status: false, message: "Product not found" });
     }
 
-    return res.status(200).json({ 
-      status: true, 
-      message: "Product updated successfully"
+    return res.status(200).json({
+      status: true,
+      message: "Product updated successfully",
     });
   } catch (error) {
     console.error("Update Product Error:", error);
-    return res.status(500).json({ 
-      status: false, 
+    return res.status(500).json({
+      status: false,
       message: "Internal server error",
-      error: error.message 
+      error: error.message,
     });
   }
 };
+
 
 //=====vendor against product====
 export const getProductsByVendor = async (req, res) => {
