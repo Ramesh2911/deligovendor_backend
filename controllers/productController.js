@@ -285,8 +285,8 @@ export const updateProduct = async (req, res) => {
       errors.push("Tax amount must be a valid number");
     }
 
-    // Handle file upload validation (same as addProduct)
-    if (req.file) {
+    // Handle file upload validation (only if user wants to change image)
+    if (req.file && req.file.size > 0 && req.file.originalname) {
       const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
       const maxSize = 5 * 1024 * 1024;
 
@@ -325,8 +325,8 @@ export const updateProduct = async (req, res) => {
       }
     });
 
-    // Handle file upload
-    if (req.file) {
+    // Handle file upload (only if user wants to change image)
+    if (req.file && req.file.size > 0 && req.file.originalname) {
       const fileContent = req.file.buffer;
       const fileName = req.file.originalname;
       const mimetype = req.file.mimetype;
