@@ -28,14 +28,14 @@ export const vendorStats = async (req, res) => {
       SELECT IFNULL(SUM(total_sale_amount - total_admin_revinue), 0) AS today_total
       FROM hr_vendor_commission
       WHERE vendor_id = ?
-        AND DATE(crated_time) = CURDATE()
+        AND DATE(created_time) = CURDATE()
     `, [vendor_id]);
     
     const [lastWeekAmount] = await con.query(`
       SELECT IFNULL(SUM(total_sale_amount - total_admin_revinue), 0) AS last_week_total
       FROM hr_vendor_commission
       WHERE vendor_id = ?
-        AND YEARWEEK(crated_time, 1) = YEARWEEK(CURDATE(), 1) - 1
+        AND YEARWEEK(created_time, 1) = YEARWEEK(CURDATE(), 1) - 1
     `, [vendor_id]);
     
     const statusData = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
