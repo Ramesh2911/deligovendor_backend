@@ -17,139 +17,6 @@ async function getImageUrl(key) {
 }
 
 //=====addProduct=====
-// export const addProduct = async (req, res) => {
-//   try {
-//     const {
-//       product_cat,
-//       product_sub_cat,
-//       vendor_id,
-//       product_name,
-//       product_short,
-//       product_desc,
-//       mrp_price,
-//       price,
-//       sku,
-//       brand,
-//       stock_quantity,
-//       product_unit_id,
-//       is_active,
-//     } = req.body;
-
-//     const errors = [];
-
-//     if (!product_cat) errors.push("Product category is required");
-//     if (!product_sub_cat) errors.push("Product sub-category is required");
-//     if (!vendor_id) errors.push("Vendor ID is required");
-//     if (!product_name?.trim()) errors.push("Product name is required");
-//     if (!product_short?.trim()) errors.push("Short description is required");
-//     if (!product_desc?.trim()) errors.push("Product description is required");
-//     if (!mrp_price || isNaN(parseFloat(mrp_price)))
-//       errors.push("MRP price is invalid");
-//     if (!price || isNaN(parseFloat(price)))
-//       errors.push("Selling price is invalid");
-//     if (!sku?.trim()) errors.push("SKU is required");
-//     if (!brand?.trim()) errors.push("Brand is required");
-//     if (!stock_quantity || isNaN(parseInt(stock_quantity)))
-//       errors.push("Stock quantity is invalid");
-//     if (!product_unit_id) errors.push("Product unit ID is required");
-//     if (typeof is_active === "undefined")
-//       errors.push("Active status is required");
-
-//     if (req.file) {
-//       const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
-//       const maxSize = 5 * 1024 * 1024;
-
-//       if (!allowedTypes.includes(req.file.mimetype)) {
-//         errors.push("Invalid image type. Only jpg, jpeg, png are allowed");
-//       }
-
-//       if (req.file.size > maxSize) {
-//         errors.push("Image size exceeds 5MB limit");
-//       }
-//     } else {
-//       errors.push("Product image is required");
-//     }
-
-//     if (errors.length > 0) {
-//       return res.status(400).json({
-//         status: false,
-//         message: "Validation failed",
-//         errors,
-//       });
-//     }
-
-//     let productImageKey = null;
-//     if (req.file) {
-//       const fileContent = req.file.buffer;
-//       const fileName = req.file.originalname;
-//       const mimetype = req.file.mimetype;
-
-//       productImageKey = await uploadToS3(
-//         fileContent,
-//         fileName,
-//         mimetype,
-//         "grocery/"
-//       );
-//     }
-
-//     const query = `
-//       INSERT INTO hr_product
-//       (
-//         product_cat,
-//         product_sub_cat,
-//         vendor_id,
-//         product_name,
-//         product_image,
-//         product_short,
-//         product_desc,
-//         mrp_price,
-//         price,
-//         sku,
-//         brand,
-//         stock_quantity,
-//         product_unit_id,
-//         is_active,
-//         created_time
-//       )
-//       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
-//     `;
-
-//     const values = [
-//       product_cat,
-//       product_sub_cat,
-//       vendor_id,
-//       product_name,
-//       productImageKey, 
-//       product_short,
-//       product_desc,
-//       mrp_price,
-//       price,
-//       sku,
-//       brand,
-//       stock_quantity,
-//       product_unit_id,
-//       is_active,
-//     ];
-
-//     const [result] = await con.query(query, values);
-
-//     res.status(200).json({
-//       status: true,
-//       message: "Product added successfully",
-//       productId: result.insertId,
-//     });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({
-//       status: false,
-//       message: "Something went wrong",
-//       error: error.message,
-//     });
-//   }
-// };
-
-
-
 export const addProduct = async (req, res) => {
   try {
     const {
@@ -291,7 +158,6 @@ export const addProduct = async (req, res) => {
   }
 };
 
-
 //====updateProduct=====
 // export const updateProduct = async (req, res) => {
 //    const {
@@ -378,22 +244,78 @@ export const updateProduct = async (req, res) => {
   try {
     const fields = [];
     const values = [];
+    const errors = [];
 
     const allowedFields = [
       "product_cat",
-      "product_sub_cat",
+      "product_sub_cat", 
       "vendor_id",
       "product_name",
       "product_short",
       "product_desc",
       "mrp_price",
       "price",
+      "tax_percentage",
+      "tax_price",
       "sku",
       "brand",
       "stock_quantity",
       "product_unit_id",
       "is_active",
     ];
+
+    // Validation for specific fields
+    if (req.body.hasOwnProperty('mrp_price') && req.body.mrp_price !== null && req.body.mrp_price !== '') {
+      if (isNaN(parseFloat(req.body.mrp_price))) {
+        errors.push("MRP price must be a valid number");
+      }
+    }
+
+    if (req.body.hasOwnProperty('price') && req.body.price !== null && req.body.price !== '') {
+      if (isNaN(parseFloat(req.body.price))) {
+        errors.push("Selling price must be a valid number");
+      }
+    }
+
+    if (req.body.hasOwnProperty('stock_quantity') && req.body.stock_quantity !== null && req.body.stock_quantity !== '') {
+      if (isNaN(parseInt(req.body.stock_quantity))) {
+        errors.push("Stock quantity must be a valid number");
+      }
+    }
+
+    if (req.body.hasOwnProperty('tax_percentage') && req.body.tax_percentage !== null && req.body.tax_percentage !== '') {
+      if (isNaN(parseFloat(req.body.tax_percentage))) {
+        errors.push("Tax percentage must be a valid number");
+      }
+    }
+
+    if (req.body.hasOwnProperty('tax_price') && req.body.tax_price !== null && req.body.tax_price !== '') {
+      if (isNaN(parseFloat(req.body.tax_price))) {
+        errors.push("Tax amount must be a valid number");
+      }
+    }
+
+
+    // Handle file upload validation
+    if (req.file) {
+      const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
+      const maxSize = 5 * 1024 * 1024;
+
+      if (!allowedTypes.includes(req.file.mimetype)) {
+        errors.push("Invalid image type. Only jpg, jpeg, png are allowed");
+      }
+      if (req.file.size > maxSize) {
+        errors.push("Image size exceeds 5MB limit");
+      }
+    }
+
+    if (errors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors,
+      });
+    }
 
     // Update all fields that exist in req.body (even if null or empty)
     allowedFields.forEach((field) => {
@@ -405,16 +327,6 @@ export const updateProduct = async (req, res) => {
 
     // Handle file upload
     if (req.file) {
-      const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
-      const maxSize = 5 * 1024 * 1024;
-
-      if (!allowedTypes.includes(req.file.mimetype)) {
-        return res.status(400).json({ success: false, message: "Invalid image type" });
-      }
-      if (req.file.size > maxSize) {
-        return res.status(400).json({ success: false, message: "Image exceeds 5MB" });
-      }
-
       const fileContent = req.file.buffer;
       const fileName = req.file.originalname;
       const mimetype = req.file.mimetype;
@@ -438,10 +350,17 @@ export const updateProduct = async (req, res) => {
       return res.status(404).json({ success: false, message: "Product not found" });
     }
 
-    return res.status(200).json({ success: true, message: "Product updated successfully" });
+    return res.status(200).json({ 
+      success: true, 
+      message: "Product updated successfully"
+    });
   } catch (error) {
     console.error("Update Product Error:", error);
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    return res.status(500).json({ 
+      success: false, 
+      message: "Internal server error",
+      error: error.message 
+    });
   }
 };
 

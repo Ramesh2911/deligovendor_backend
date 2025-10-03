@@ -15,7 +15,7 @@ const upload = multer({ storage });
 const productRoutes = express.Router();
 
 productRoutes.post('/addProduct', upload.single("product_image"), verifyToken, addProduct);
-productRoutes.put('/updateProduct/:pid', verifyToken, updateProduct);
+productRoutes.put('/updateProduct/:pid', upload.single("product_image"), verifyToken, updateProduct);
 productRoutes.get('/products-by-vendor', verifyToken, getProductsByVendor);
 productRoutes.get('/taxes', verifyToken, getTaxes);
 
