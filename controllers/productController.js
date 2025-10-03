@@ -246,10 +246,6 @@ export const updateProduct = async (req, res) => {
     const values = [];
     const errors = [];
 
-    // Debug logging
-    console.log("Update Product Request Body:", req.body);
-    console.log("Update Product File:", req.file ? "File present" : "No file");
-
     const allowedFields = [
       "product_cat",
       "product_sub_cat", 
@@ -289,7 +285,7 @@ export const updateProduct = async (req, res) => {
       errors.push("Tax amount must be a valid number");
     }
 
-    // Handle file upload validation
+    // Handle file upload validation (same as addProduct)
     if (req.file) {
       const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
       const maxSize = 5 * 1024 * 1024;
@@ -297,6 +293,7 @@ export const updateProduct = async (req, res) => {
       if (!allowedTypes.includes(req.file.mimetype)) {
         errors.push("Invalid image type. Only jpg, jpeg, png are allowed");
       }
+
       if (req.file.size > maxSize) {
         errors.push("Image size exceeds 5MB limit");
       }
