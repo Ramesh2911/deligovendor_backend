@@ -238,13 +238,17 @@ export const addProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
   const { pid } = req.params;
   if (!pid) {
-    return res.status(400).json({ success: false, message: "Product ID (pid) is required" });
+    return res.status(400).json({ status: false, message: "Product ID (pid) is required" });
   }
 
   try {
     const fields = [];
     const values = [];
     const errors = [];
+
+    // Debug logging
+    console.log("Update Product Request Body:", req.body);
+    console.log("Update Product File:", req.file ? "File present" : "No file");
 
     const allowedFields = [
       "product_cat",
@@ -260,26 +264,28 @@ export const updateProduct = async (req, res) => {
       "stock_quantity",
       "product_unit_id",
       "is_active",
+      "tax",
+      "tax_amount",
     ];
 
-    // Simple validation for numeric fields
-    if (req.body.mrp_price && isNaN(parseFloat(req.body.mrp_price))) {
+    // Simple validation for numeric fields (handle string numbers from FormData)
+    if (req.body.mrp_price && req.body.mrp_price !== '' && req.body.mrp_price !== '0' && isNaN(parseFloat(req.body.mrp_price))) {
       errors.push("MRP price must be a valid number");
     }
 
-    if (req.body.price && isNaN(parseFloat(req.body.price))) {
+    if (req.body.price && req.body.price !== '' && req.body.price !== '0' && isNaN(parseFloat(req.body.price))) {
       errors.push("Selling price must be a valid number");
     }
 
-    if (req.body.stock_quantity && isNaN(parseInt(req.body.stock_quantity))) {
+    if (req.body.stock_quantity && req.body.stock_quantity !== '' && req.body.stock_quantity !== '0' && isNaN(parseInt(req.body.stock_quantity))) {
       errors.push("Stock quantity must be a valid number");
     }
 
-    if (req.body.tax && isNaN(parseFloat(req.body.tax))) {
+    if (req.body.tax && req.body.tax !== '' && req.body.tax !== '0' && isNaN(parseFloat(req.body.tax))) {
       errors.push("Tax percentage must be a valid number");
     }
 
-    if (req.body.tax_amount && isNaN(parseFloat(req.body.tax_amount))) {
+    if (req.body.tax_amount && req.body.tax_amount !== '' && req.body.tax_amount !== '0' && isNaN(parseFloat(req.body.tax_amount))) {
       errors.push("Tax amount must be a valid number");
     }
 
@@ -297,8 +303,9 @@ export const updateProduct = async (req, res) => {
     }
 
     if (errors.length > 0) {
+      console.log("Validation Errors:", errors);
       return res.status(400).json({
-        success: false,
+        status: false,
         message: "Validation failed",
         errors,
       });
@@ -307,21 +314,19 @@ export const updateProduct = async (req, res) => {
     // Build update query for fields that exist in request body
     allowedFields.forEach((field) => {
       if (req.body[field] !== undefined) {
-        fields.push(`${field} = ?`);
-        values.push(req.body[field]);
+        // Map frontend field names to database field names
+        if (field === 'tax') {
+          fields.push("tax_percentage = ?");
+          values.push(req.body[field] || 0);
+        } else if (field === 'tax_amount') {
+          fields.push("tax_price = ?");
+          values.push(req.body[field] || 0);
+        } else {
+          fields.push(`${field} = ?`);
+          values.push(req.body[field]);
+        }
       }
     });
-
-    // Handle tax fields mapping (frontend sends 'tax' and 'tax_amount', database expects 'tax_percentage' and 'tax_price')
-    if (req.body.tax !== undefined) {
-      fields.push("tax_percentage = ?");
-      values.push(req.body.tax || 0);
-    }
-
-    if (req.body.tax_amount !== undefined) {
-      fields.push("tax_price = ?");
-      values.push(req.body.tax_amount || 0);
-    }
 
     // Handle file upload
     if (req.file) {
@@ -335,7 +340,7 @@ export const updateProduct = async (req, res) => {
     }
 
     if (fields.length === 0) {
-      return res.status(400).json({ success: false, message: "No fields to update" });
+      return res.status(400).json({ status: false, message: "No fields to update" });
     }
 
     fields.push("modified_time = NOW()");
@@ -345,17 +350,17 @@ export const updateProduct = async (req, res) => {
     const [result] = await con.query(sql, values);
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: "Product not found" });
+      return res.status(404).json({ status: false, message: "Product not found" });
     }
 
     return res.status(200).json({ 
-      success: true, 
+      status: true, 
       message: "Product updated successfully"
     });
   } catch (error) {
     console.error("Update Product Error:", error);
     return res.status(500).json({ 
-      success: false, 
+      status: false, 
       message: "Internal server error",
       error: error.message 
     });
