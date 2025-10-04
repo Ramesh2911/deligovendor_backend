@@ -1,6 +1,60 @@
 import con from '../db/db.js';
 
 //===== order list====
+// export const orderDetails = async (req, res) => {
+//    const { vendor_id } = req.query;
+
+//    if (!vendor_id) {
+//       return res.status(400).json({ status: false, message: "vendor_id is required" });
+//    }
+
+//    try {
+//       const [orders] = await con.query(
+//          `SELECT
+//         o.oid AS order_id,
+//         o.user_id,
+//         u.first_name,
+//         u.last_name,
+//         o.total_amount,
+//         o.status,
+//         o.shipping_address,
+//         o.billing_address,
+//         o.payment_method,
+//         o.delivery_amount,
+//         o.discount,
+//         o.tax_amount,
+//         o.shipping_address,
+//         o.billing_address,
+//         o.created_time
+//       FROM hr_order o
+//       JOIN hr_users u ON o.user_id = u.id
+//       WHERE o.vendor_id = ?`,
+//          [vendor_id]
+//       );
+
+//       for (let order of orders) {
+//          const [items] = await con.query(
+//             `SELECT
+//         oiid,
+//         product_name,
+//         quantity,
+//         total_amount,
+//         status,
+//         vendor_notes
+//      FROM hr_order_item
+//      WHERE order_id = ?`,
+//             [order.order_id]
+//          );
+//          order.items = items;
+//       }
+
+//       return res.status(200).json({ status: true, data: orders });
+//    } catch (error) {
+//       console.error("Error fetching order details:", error);
+//       return res.status(500).json({ status: false, message: "Internal server error" });
+//    }
+// };
+
 export const orderDetails = async (req, res) => {
    const { vendor_id } = req.query;
 
@@ -11,38 +65,37 @@ export const orderDetails = async (req, res) => {
    try {
       const [orders] = await con.query(
          `SELECT
-        o.oid AS order_id,
-        o.user_id,
-        u.first_name,
-        u.last_name,
-        o.total_amount,
-        o.status,
-        o.shipping_address,
-        o.billing_address,
-        o.payment_method,
-        o.delivery_amount,
-        o.discount,
-        o.tax_amount,
-        o.shipping_address,
-        o.billing_address,
-        o.created_time
-      FROM hr_order o
-      JOIN hr_users u ON o.user_id = u.id
-      WHERE o.vendor_id = ?`,
+            o.oid AS order_id,
+            o.user_id,
+            u.first_name,
+            u.last_name,
+            o.total_amount,
+            o.status,
+            o.shipping_address,
+            o.billing_address,
+            o.payment_method,
+            o.delivery_amount,
+            o.discount,
+            o.tax_amount,
+            o.created_time
+         FROM hr_order o
+         JOIN hr_users u ON o.user_id = u.id
+         WHERE o.vendor_id = ?
+           AND o.payment_status = 'completed'`,   
          [vendor_id]
       );
 
       for (let order of orders) {
          const [items] = await con.query(
             `SELECT
-        oiid,
-        product_name,
-        quantity,
-        total_amount,
-        status,
-        vendor_notes
-     FROM hr_order_item
-     WHERE order_id = ?`,
+               oiid,
+               product_name,
+               quantity,
+               total_amount,
+               status,
+               vendor_notes
+             FROM hr_order_item
+             WHERE order_id = ?`,
             [order.order_id]
          );
          order.items = items;
@@ -54,6 +107,7 @@ export const orderDetails = async (req, res) => {
       return res.status(500).json({ status: false, message: "Internal server error" });
    }
 };
+
 
 //==== status update=====
 export const updateOrderStatus = async (req, res) => {
