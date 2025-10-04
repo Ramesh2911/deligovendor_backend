@@ -204,7 +204,8 @@ export const updateProduct = async (req, res) => {
       errors.push("Tax amount must be a valid number");
     }
     
-    if (req.file && req.file.buffer && req.file.size > 0) {
+    // Only validate image if a new file is actually uploaded
+    if (req.file && req.file.buffer && req.file.size > 0 && req.file.originalname) {
       console.log("File received:", {
         originalname: req.file.originalname,
         mimetype: req.file.mimetype,
@@ -222,7 +223,7 @@ export const updateProduct = async (req, res) => {
         errors.push("Image size exceeds 5MB limit");
       }
     } else {
-      console.log("No new product image uploaded → keeping old image");
+      console.log("No new product image uploaded → keeping existing image");
     }
 
     if (errors.length > 0) {
@@ -249,7 +250,8 @@ export const updateProduct = async (req, res) => {
       }
     });
    
-    if (req.file && req.file.buffer && req.file.size > 0) {
+    // Only upload new image if a valid file is provided
+    if (req.file && req.file.buffer && req.file.size > 0 && req.file.originalname) {
       const fileContent = req.file.buffer;
       const fileName = req.file.originalname;
       const mimetype = req.file.mimetype;
