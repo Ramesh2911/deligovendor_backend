@@ -187,31 +187,24 @@ export const updateProduct = async (req, res) => {
       "tax",
       "tax_amount",
     ];
-
-    // Numeric validations
-    if (req.body.mrp_price && req.body.mrp_price !== '' && req.body.mrp_price !== '0' && isNaN(parseFloat(req.body.mrp_price))) {
+  
+    if (req.body.mrp_price && req.body.mrp_price !== '' && isNaN(parseFloat(req.body.mrp_price))) {
       errors.push("MRP price must be a valid number");
     }
-    if (req.body.price && req.body.price !== '' && req.body.price !== '0' && isNaN(parseFloat(req.body.price))) {
+    if (req.body.price && req.body.price !== '' && isNaN(parseFloat(req.body.price))) {
       errors.push("Selling price must be a valid number");
     }
-    if (req.body.stock_quantity && req.body.stock_quantity !== '' && req.body.stock_quantity !== '0' && isNaN(parseInt(req.body.stock_quantity))) {
+    if (req.body.stock_quantity && req.body.stock_quantity !== '' && isNaN(parseInt(req.body.stock_quantity))) {
       errors.push("Stock quantity must be a valid number");
     }
-    if (req.body.tax && req.body.tax !== '' && req.body.tax !== '0' && isNaN(parseFloat(req.body.tax))) {
+    if (req.body.tax && req.body.tax !== '' && isNaN(parseFloat(req.body.tax))) {
       errors.push("Tax percentage must be a valid number");
     }
-    if (req.body.tax_amount && req.body.tax_amount !== '' && req.body.tax_amount !== '0' && isNaN(parseFloat(req.body.tax_amount))) {
+    if (req.body.tax_amount && req.body.tax_amount !== '' && isNaN(parseFloat(req.body.tax_amount))) {
       errors.push("Tax amount must be a valid number");
     }
-
-    // ✅ Only validate product_image if a new file is actually uploaded
-    if (
-      req.file &&
-      req.file.size > 0 &&
-      req.file.originalname &&
-      req.file.originalname.trim() !== ''
-    ) {
+    
+    if (req.file && req.file.buffer && req.file.size > 0) {
       console.log("File received:", {
         originalname: req.file.originalname,
         mimetype: req.file.mimetype,
@@ -219,7 +212,7 @@ export const updateProduct = async (req, res) => {
       });
 
       const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
-      const maxSize = 5 * 1024 * 1024;
+      const maxSize = 5 * 1024 * 1024; 
 
       if (!allowedTypes.includes(req.file.mimetype)) {
         errors.push("Invalid image type. Only jpg, jpeg, png are allowed");
@@ -240,8 +233,7 @@ export const updateProduct = async (req, res) => {
         errors,
       });
     }
-
-    // Build update query
+   
     allowedFields.forEach((field) => {
       if (req.body[field] !== undefined) {
         if (field === "tax") {
@@ -256,20 +248,13 @@ export const updateProduct = async (req, res) => {
         }
       }
     });
-
-    // ✅ Only update product_image if new image uploaded
-    if (
-      req.file &&
-      req.file.size > 0 &&
-      req.file.originalname &&
-      req.file.originalname.trim() !== ''
-    ) {
+   
+    if (req.file && req.file.buffer && req.file.size > 0) {
       const fileContent = req.file.buffer;
       const fileName = req.file.originalname;
       const mimetype = req.file.mimetype;
 
       const productImageKey = await uploadToS3(fileContent, fileName, mimetype, "grocery/");
-
       fields.push("product_image = ?");
       values.push(productImageKey);
     }
@@ -301,6 +286,7 @@ export const updateProduct = async (req, res) => {
     });
   }
 };
+
 
 //=====vendor against product====
 export const getProductsByVendor = async (req, res) => {
