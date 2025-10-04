@@ -21,6 +21,7 @@ export const vendorStats = async (req, res) => {
       SELECT status, COUNT(*) as count
       FROM hr_order
       WHERE vendor_id = ?
+        AND payment_status = 'completed'
       GROUP BY status
     `, [vendor_id]);
    

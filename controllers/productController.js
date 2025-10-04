@@ -280,7 +280,6 @@ export const updateProduct = async (req, res) => {
       const productImageKey = await uploadToS3(fileContent, fileName, mimetype, "grocery/");
       fields.push("product_image = ?");
       values.push(productImageKey);
-      console.log("New image uploaded successfully");
     }
 
     if (fields.length === 0) {
