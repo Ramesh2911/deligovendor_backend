@@ -10,6 +10,7 @@ import unitRoutes from './routes/unitRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import bankRoutes from './routes/bankRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 config({
     path: './config.env'
@@ -34,5 +35,6 @@ app.use('/api', unitRoutes);
 app.use('/api', dashboardRoutes);
 app.use('/api', orderRoutes);
 app.use('/api',bankRoutes);
+app.use('/api',notificationRoutes);
 
 export default app;
